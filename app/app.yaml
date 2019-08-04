@@ -1,4 +1,5 @@
-runtime: go
+runtime: go112
+env: standard
 api_version: go1
 
 handlers:
