@@ -1,6 +1,6 @@
 package receiptscanner
 
-type Reciept struct {
+type Receipt struct {
 	URL string
 	ID int
 	Business string

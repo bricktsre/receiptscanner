@@ -13,12 +13,12 @@ func parseTemplate(filename string) *appTemplate {
 
 	path := filepath.Join("templates", filename)
 	b, err := ioutil.ReadFile(path)
-	if err != nil [
-		panic(fmt.Errof("could not read template: %v", err))
+	if err != nil {
+		panic(fmt.Errorf("could not read template: %v", err))
 	}
 	template.Must(tmpl.New("body").Parse(string(b)))
 
-	return &apptemplate{tmpl.Lookup("base.html")}
+	return &appTemplate{tmpl.Lookup("base.html")}
 }
 
 type appTemplate struct {

@@ -10,14 +10,16 @@ import (
 	"context"
 	"errors"
 	"path"
-	"strconv"
+	//"strconv"
+	"../../receiptscanner"
 
-	"github.com/gorilla/handles"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	
-	"google.golang.org/appengine"
-	"google.golang.org/appenginge/datastore"
-	"google.golang.org/appengine/log"
+
+	"cloud.google.com/go/storage"
+	//"google.golang.org/appengine"
+	//"google.golang.org/appengine/datastore"
+	//"google.golang.org/appengine/log"
 	vision "cloud.google.com/go/vision/apiv1"
 	uuid "github.com/gofrs/uuid"
 )
@@ -38,12 +40,12 @@ func main() {
 }
 
 func registerHandlers() {
-	r := mux.Newrouter()
+	r := mux.NewRouter()
 
-	r.Handle("/", http.RedirectHandler("/upload", http.StatusFound)
+	r.Handle("/", http.RedirectHandler("/upload", http.StatusFound))
 
 	r.Methods("GET").Path("/upload").Handler(appHandler(uploadHandler))
-	r.Methods("Get").Path("/result").Handler(appHandler(resultHandler))
+	r.Methods("GET").Path("/result").Handler(appHandler(resultHandler))
 
 	r.Methods("POST").Path("/process_image").Handler(appHandler(imageProcessingHandler))
 
@@ -55,41 +57,42 @@ func registerHandlers() {
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stderr, r))
 }
 
-func uploadHandler(w http.ResponseWriter, r *http.Request) {
-	return listTmpl.Execute(w,r, nil)
+func uploadHandler(w http.ResponseWriter, r *http.Request) *appError{
+	return uploadTmpl.Execute(w,r,nil)
 }
 
-func resultHandler(w http.ResponseWriter, r *http.Request) {
+func resultHandler(w http.ResponseWriter, r *http.Request) *appError{
 	var receipt receiptscanner.Receipt
 	if r.Body == nil {
-		return appError(errors.New("Receipt Data was not sent"),"",0)
+		return appErrorf(errors.New("Receipt Data was not sent"),"",nil)
 	}
 	
-	err := json.NewDecoder(r.Bosy).Decode(&receipt)
+	err := json.NewDecoder(r.Body).Decode(&receipt)
 	if err != nil {
-		return appError(errors.New("Recepit Data could not be parsed from http request"),"",0)
+		return appErrorf(errors.New("Receipt Data could not be parsed from http request"),"",nil)
 	}
-	return resultTmpls.Execute(w,r,receipt)
+	return resultTmpl.Execute(w,r,receipt)
 }
 
-func imageProcessingHandler(w http.ResponseWriter, r *http.Request) {
-	receipt, err = receiptFromForm(r)
-	if err !=nil {
-		return appError(err, "could not parse book from form: %v", err)
+func imageProcessingHandler(w http.ResponseWriter, r *http.Request) *appError{
+	receipt, err := receiptFromForm(r)
+	if err != nil {
+		return appErrorf(err, "could not parse book from form: %v", err)
 	}
 	http.Redirect(w, r, fmt.Sprintf("/result", receipt), http.StatusFound)
 	return nil	
 }
 
+// creates a receipt object from the uploaded image file
 func receiptFromForm(r *http.Request) (*receiptscanner.Receipt, error) {
 	imageURL, err := uploadFileFromForm(r)
 	if err != nil {
 		return nil, fmt.Errorf("could not upload file: %v", err)
 	}
-	var receipt receiptScanner.Receipt
+	var receipt receiptscanner.Receipt
 	receipt.URL = imageURL
 	
-	text, err = getTextFromImage(receipt.URL)
+	text, err := getTextFromImage(receipt.URL)
 	if err != nil {
 		return nil, fmt.Errorf("could not get text from image: %v", err)
 	}
@@ -120,7 +123,7 @@ func uploadFileFromForm(r *http.Request) (url string, err error) {
         w := receiptscanner.StorageBucket.Object(name).NewWriter(ctx)
 
         // Warning: storage.AllUsers gives public read access to anyone.
-        w.ACL = []storage.ACLRutype appHandler func(http.ResponseWriter, *http.Request) *appError
+        w.ACL = []storage.ACLRule{{Entity: storage.AllUsers, Role: storage.RoleReader}}
         w.ContentType = fh.Header.Get("Content-Type")
 
         // Entries are immutable, be aggressive about caching (1 day).
@@ -137,18 +140,19 @@ func uploadFileFromForm(r *http.Request) (url string, err error) {
         return fmt.Sprintf(publicURL, receiptscanner.StorageBucketName, name), nil
 }
 
-func getTextFromImage(file string) ([]string, error{
-	ctx:= context.Backgrount()
+//Uses google ML Vision API to detect text in the uploaded image
+func getTextFromImage(file string) ([]string, error){
+	ctx:= context.Background()
 
 	client, err := vision.NewImageAnnotatorClient(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	
 	image := vision.NewImageFromURI(file)
-	annotations, err := client.DetectTexts(ctx, image, nil, 10)
+	annotations, err := client.DetectTexts(ctx, image, nil, 50)
 	if err != nil {
-		return err
+		return nil, err
 	}
 		
 	var text []string
