@@ -6,11 +6,10 @@ import (
 	"log"
 	"os"
 	"io"
-	"encoding/json"
 	"context"
 	"errors"
 	"path"
-	//"strconv"
+	"strconv"
 	"../../receiptscanner"
 
 	"github.com/gorilla/handlers"
@@ -45,7 +44,7 @@ func registerHandlers() {
 	r.Handle("/", http.RedirectHandler("/upload", http.StatusFound))
 
 	r.Methods("GET").Path("/upload").Handler(appHandler(uploadHandler))
-	r.Methods("GET").Path("/result").Handler(appHandler(resultHandler))
+	r.Methods("GET").Path("/result/{id:[0-9]+}").Handler(appHandler(resultHandler))
 
 	r.Methods("POST").Path("/process_image").Handler(appHandler(imageProcessingHandler))
 
@@ -62,24 +61,35 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) *appError{
 }
 
 func resultHandler(w http.ResponseWriter, r *http.Request) *appError{
-	var receipt receiptscanner.Receipt
-	if r.Body == nil {
-		return appErrorf(errors.New("Receipt Data was not sent"),"",nil)
-	}
-	
-	err := json.NewDecoder(r.Body).Decode(&receipt)
+	receipt, err := receiptFromRequest(r)
 	if err != nil {
-		return appErrorf(errors.New("Receipt Data could not be parsed from http request"),"",nil)
+		return appErrorf(err, "%v", err)
 	}
 	return resultTmpl.Execute(w,r,receipt)
+}
+
+func receiptFromRequest(r *http.Request) (*receiptscanner.Receipt, error) {
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("bad receipt id: %v", err)
+	}
+	receipt, err := receiptscanner.DB.GetReceipt(id)
+	if err != nil {
+		return nil, fmt.Errorf("could not get receipt from datastore: %v", err)
+	}
+	return receipt, nil
 }
 
 func imageProcessingHandler(w http.ResponseWriter, r *http.Request) *appError{
 	receipt, err := receiptFromForm(r)
 	if err != nil {
-		return appErrorf(err, "could not parse book from form: %v", err)
+		return appErrorf(err, "could not parse receipt from form: %v", err)
 	}
-	http.Redirect(w, r, fmt.Sprintf("/result", receipt), http.StatusFound)
+	id, err := receiptscanner.DB.AddReceipt(receipt)
+	if err != nil {
+		return appErrorf(err, "could not add reciept to database: %v", err)
+	}
+	http.Redirect(w, r, fmt.Sprintf("/result/%d", id), http.StatusFound)
 	return nil	
 }
 
