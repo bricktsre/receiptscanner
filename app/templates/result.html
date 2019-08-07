@@ -2,12 +2,12 @@
 
 <div class="media">
  <div class="media-left">
-  <img src="{{.URL}}">
+	 <!--<img src="{{.URL}}">-->
  </div>
  <div class="media-body">
-  <h4>{{.Business}}</h4>
-  <p>{{.SubTotal}}</p>
-  <p>{{if .Tax}}{{.Tax}}{{else}}No tax{{end}}</p>
-  <h5>{{.Total}}</h5>
+  <h4>Business: {{.Business}}</h4>
+  <p>Subtotal: {{.SubTotal}}</p>
+  <p>Tax: {{.Tax}}</p>
+  <h5>Total: {{.Total}}</h5>
  </div>
 </div>

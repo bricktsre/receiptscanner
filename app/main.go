@@ -102,13 +102,16 @@ func receiptFromForm(r *http.Request) (*receiptscanner.Receipt, error) {
 	var receipt receiptscanner.Receipt
 	receipt.URL = imageURL
 	
-	text, err := getTextFromImage(receipt.URL)
+	txt_annotation, err := getTextFromImage(receipt.URL)
 	if err != nil {
 		return nil, fmt.Errorf("could not get text from image: %v", err)
 	}
-	for i,v := range text {
-		log.Print(fmt.Sprintf("%v: %v", i, v)) 
+	
+	total, err := txt_annotation.GetTotal()
+	if err != nil {
+		return nil, fmt.Errorf("Could not get total: %v", err)
 	}
+	receipt.Total = total
 	return &receipt, nil
 }
 
@@ -151,7 +154,7 @@ func uploadFileFromForm(r *http.Request) (url string, err error) {
 }
 
 //Uses google ML Vision API to detect text in the uploaded image
-func getTextFromImage(file string) ([]string, error){
+func getTextFromImage(file string) (*TextAnnotation, error){
 	ctx:= context.Background()
 
 	client, err := vision.NewImageAnnotatorClient(ctx)
@@ -164,12 +167,8 @@ func getTextFromImage(file string) ([]string, error){
 	if err != nil {
 		return nil, err
 	}
-		
-	var text []string
-	for _, annotation := range annotations {
-		text = append(text, annotation.Description)
-	}
-	return text, nil
+
+	return &TextAnnotation{Annotations: annotations}, nil
 }
 
 type appHandler func(http.ResponseWriter, *http.Request) *appError
