@@ -11,7 +11,7 @@ import (
 )
 
 type TextAnnotation struct {
-	Annotations []*pb.EntityAnnotation
+	Annotations []*pb.TextAnnotation
 	SubtotalIndex int
 	TotalIndex int 
 }
@@ -22,13 +22,12 @@ func(t *TextAnnotation) GetTotal() (float64, error) {
 		return 0.0, fmt.Errorf("Could not generate regular expression: %v", err)
 	}
 	
-	b, temp, err := getTextBoundingPoly(t, regex)
-	t.TotalIndex = temp
+	total, err := getNumberFromAnnotation(t, regex)
 	if err != nil {
 		return 0.0, err
 	}
-	log.Print(fmt.Sprintf("%v",b))
-	return 0.0, nil
+	log.Print(fmt.Sprintf("%v",total))
+	return total, nil
 }
 
 func(t *TextAnnotation) GetSubTotal() (float64, error) {
@@ -37,21 +36,29 @@ func(t *TextAnnotation) GetSubTotal() (float64, error) {
 		return 0.0, fmt.Errorf("Could not generate regular expression: %v", err)
 	}
 	
-	b, temp, err := getTextBoundingPoly(t, regex)
-	t.SubtotalIndex = temp
+	subtotal, err := getNumberFromAnnotation(t, regex)
 	if err != nil {
 		return 0.0, err
 	}
-	log.Print(fmt.Sprintf("%v",b))
-	return 0.0, nil
+	log.Print(fmt.Sprintf("%v", subtotal))
+	return subtotal, nil
 }
 
-func getTextBoundingPoly(t *TextAnnotation, rx *regexp.Regexp) (*pb.BoundingPoly, int, error) {
-	for i,v := range t.Annotations {
-		log.Print(fmt.Sprintf("%v",v))
-		if tmp := rx.FindString(v.Description); tmp != "" && len(v.Description) < 10 {
-			return v.BoundingPoly, i, nil
+func getNumberFromAnnotation(t *TextAnnotation, rx *regexp.Regexp) (float64, error) {
+	page  := t.GetPages()
+	blocks := page.GetBlocks
+	for i:=(len(blocks)-1); i >= 0; i-- {
+		paragraph := blocks[i].GetParagraphs()
+		para_string := paragraph.String()
+		if index := rx.FindIndex(para_string); index != -1{
+			floatrx, err := regexp.Compile(`/d*/D/d*`)
+			if err != nil {
+				return 0.0, errors.New("Could not generate float regular expression")
+			}
+			float_string := floatrx.FindString(para_string)
+			return 0.0, nil
 		}
 	}
-	return nil, 0, errors.New("Could not find total in given text")
+	
+	return 0.0, errors.New("Could not find regular expression in given text")
 }

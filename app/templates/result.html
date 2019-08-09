@@ -4,10 +4,18 @@
  <div class="media-left">
 	 <!--<img src="{{.URL}}">-->
  </div>
- <div class="media-body">
-  <h4>Business: {{.Business}}</h4>
-  <p>Subtotal: {{.SubTotal}}</p>
-  <p>Tax: {{.Tax}}</p>
-  <h5>Total: {{.Total}}</h5>
- </div>
+ <h4>Update any values if needed</h4>
+ <form action="/update_receipt" method="post" enctype="multipart/form-data">
+  <div class="form-group">
+   <label for="business">Business:</label>
+   <input class="form-control" id="business" name="business" type="text" value={{.Business}}>
+   <label for="subtotal">Subtotal:</label>
+   <input class="form-control" id="subtotal" name="subtotal" type="text" value={{.Subtotal}}>
+   <label for="tax">Tax:</label>
+   <input class="form-control" id="tax" name="tax" type="text" value={{.Tax}}>
+   <label for="total">Total:</label>
+   <input class="form-control" id="total" name="total" type="text" value={{.Total}}>
+  </div>
+  <button class="btn btn-success">Update</button>
+ </form>
 </div>

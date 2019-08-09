@@ -48,7 +48,6 @@ func registerHandlers() {
 	r.Methods("GET").Path("/result/{id:[0-9]+}").Handler(appHandler(resultHandler))
 
 	r.Methods("POST").Path("/process_image").Handler(appHandler(imageProcessingHandler))
-	r.Methods("POST").Path("/update_receipt").Handler(appHandler(receiptUpdateHandler))
 
 	r.Methods("GET").Path("/_ah/health").HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -80,23 +79,6 @@ func receiptFromRequest(r *http.Request) (*receiptscanner.Receipt, error) {
 		return nil, fmt.Errorf("could not get receipt from datastore: %v", err)
 	}
 	return receipt, nil
-}
-
-func receiptUpdateHandler(r *http.Request) *appError {
-	receipt, err := receiptscanner.DB.GetReceipt(r.FormFile("id"))
-	if err != nil {
-		return appErrorf(err, "could not get receipt from database: %v", err)
-	}
-	receipt.Total = r.FormFile("total")
-	receipt.Subtotal = r.FormFile("subtotal")
-	receipt.Tax = r.FormFile("tax")
-	receipt.Total = r.FormFile("total")
-	id, err := receiptscanner.DB.UpdateReceipt(receipt) 
-	if err != nil {
-		return appErrorf(err, "could not update receipt in database: %v",err)
-	}
-	receipt.ID = id
-	return nil
 }
 
 func imageProcessingHandler(w http.ResponseWriter, r *http.Request) *appError{
