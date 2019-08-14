@@ -1,21 +1,22 @@
 <h3>Result</h3>
 
 <div class="media">
- <div class="media-left">
-	 <!--<img src="{{.URL}}">-->
- </div>
  <h4>Update any values if needed</h4>
+ <div class="media-left">
+	 <img id="receipt-image" src="{{.URL}}">
+ </div>
  <form action="/update_receipt" method="post" enctype="multipart/form-data">
   <div class="form-group">
    <label for="business">Business:</label>
-   <input class="form-control" id="business" name="business" type="text" value={{.Business}}>
+   <input class="form-control result-form" id="business" name="business" type="text" value="{{.Business}}">
    <label for="subtotal">Subtotal:</label>
-   <input class="form-control" id="subtotal" name="subtotal" type="text" value={{.Subtotal}}>
+   <input class="form-control result-form" id="subtotal" name="subtotal" type="text" value="{{.Subtotal}}">
    <label for="tax">Tax:</label>
-   <input class="form-control" id="tax" name="tax" type="text" value={{.Tax}}>
+   <input class="form-control result-form" id="tax" name="tax" type="text" value="{{.Tax}}">
    <label for="total">Total:</label>
-   <input class="form-control" id="total" name="total" type="text" value={{.Total}}>
+   <input class="form-control result-form" id="total" name="total" type="text" value="{{.Total}}">
   </div>
   <button class="btn btn-success">Update</button>
+  <input type="hidden" name="id" value="{{.ID}}">
  </form>
 </div>

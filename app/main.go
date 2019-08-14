@@ -10,6 +10,7 @@ import (
 	"errors"
 	"path"
 	"strconv"
+	"math"
 	"../../receiptscanner"
 
 	"github.com/gorilla/handlers"
@@ -19,8 +20,8 @@ import (
 	//"google.golang.org/appengine"
 	//"google.golang.org/appengine/datastore"
 	//"google.golang.org/appengine/log"
-	//vision "cloud.google.com/go/vision/apiv1"
-	vision "google.golang.org/genproto/googleapis/cloud/vision/v1"
+	vision "cloud.google.com/go/vision/apiv1"
+	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 	uuid "github.com/gofrs/uuid"
 )
 
@@ -82,20 +83,35 @@ func receiptFromRequest(r *http.Request) (*receiptscanner.Receipt, error) {
 	return receipt, nil
 }
 
-func receiptUpdateHandler(r *http.Request) *appError {
-	receipt, err := receiptscanner.DB.GetReceipt(r.FormFile("id"))
+func receiptUpdateHandler(w http.ResponseWriter, r *http.Request) *appError {
+	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
+	if err != nil {
+		return appErrorf(err, "could not parse float from form stringg: %v", err)
+	}
+	receipt,err := receiptscanner.DB.GetReceipt(id)
 	if err != nil {
 		return appErrorf(err, "could not get receipt from database: %v", err)
 	}
-	receipt.Total = r.FormFile("total")
-	receipt.Subtotal = r.FormFile("subtotal")
-	receipt.Tax = r.FormFile("tax")
-	receipt.Total = r.FormFile("total")
-	id, err := receiptscanner.DB.UpdateReceipt(receipt) 
+	
+	receipt.Business = r.FormValue("business")
+	receipt.Subtotal, err =strconv.ParseFloat(r.FormValue("subtotal"),64)
 	if err != nil {
+		return appErrorf(err, "could not parse float from form stringg: %v", err)
+	}
+	
+	receipt.Tax, err = strconv.ParseFloat(r.FormValue("tax"),64)
+	if err != nil {
+		return appErrorf(err, "could not parse float from form stringg: %v", err)
+	}
+	
+	receipt.Total, err = strconv.ParseFloat(r.FormValue("total"),64)
+	if err != nil {
+		return appErrorf(err, "could not parse float from form stringg: %v", err)
+	}
+	
+	if err := receiptscanner.DB.UpdateReceipt(receipt); err != nil {
 		return appErrorf(err, "could not update receipt in database: %v",err)
 	}
-	receipt.ID = id
 	return nil
 }
 
@@ -131,6 +147,15 @@ func receiptFromForm(r *http.Request) (*receiptscanner.Receipt, error) {
 		return nil, fmt.Errorf("Could not get total: %v", err)
 	}
 	receipt.Total = total
+
+	subtotal, err := txt_annotation.GetSubTotal()
+	if err != nil {
+		return nil, fmt.Errorf("Could not get subtotal: %v", err)
+	}
+	receipt.Subtotal = subtotal
+	if subtotal != 0 {
+		receipt.Tax = math.Round(((receipt.Total - receipt.Subtotal)*100)/100)
+	}
 	return &receipt, nil
 }
 
@@ -182,12 +207,13 @@ func getTextFromImage(file string) (*TextAnnotation, error){
 	}
 	
 	image := vision.NewImageFromURI(file)
-	annotations, err := client.DetectDocumentTexts(ctx, image, nil)
+	image_context := &pb.ImageContext{LanguageHints: []string{"en"}}
+	annotations, err := client.DetectDocumentText(ctx, image, image_context)
 	if err != nil {
 		return nil, err
 	}
 
-	return &TextAnnotation{Annotations: annotations}, nil
+	return &TextAnnotation{Annotation: annotations}, nil
 }
 
 type appHandler func(http.ResponseWriter, *http.Request) *appError

@@ -4,7 +4,7 @@ type Receipt struct {
 	URL string
 	ID int64
 	Business string
-	SubTotal float64
+	Subtotal float64
 	Tax float64
 	Total float64
 }
