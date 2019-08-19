@@ -27,7 +27,7 @@ import (
 
 var (
 	uploadTmpl = parseTemplate("upload.html")
-	resultTmpl = parseTemplate("result.html")
+	editTmpl = parseTemplate("receipt_edit.html")
 )
 
 
@@ -44,9 +44,10 @@ func registerHandlers() {
 	r := mux.NewRouter()
 
 	r.Handle("/", http.RedirectHandler("/upload", http.StatusFound))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("templates/static/"))))
 
 	r.Methods("GET").Path("/upload").Handler(appHandler(uploadHandler))
-	r.Methods("GET").Path("/result/{id:[0-9]+}").Handler(appHandler(resultHandler))
+	r.Methods("GET").Path("/edit/{id:[0-9]+}").Handler(appHandler(editHandler))
 
 	r.Methods("POST").Path("/process_image").Handler(appHandler(imageProcessingHandler))
 	r.Methods("POST").Path("/update_receipt").Handler(appHandler(receiptUpdateHandler))
@@ -63,12 +64,12 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) *appError{
 	return uploadTmpl.Execute(w,r,nil)
 }
 
-func resultHandler(w http.ResponseWriter, r *http.Request) *appError{
+func editHandler(w http.ResponseWriter, r *http.Request) *appError{
 	receipt, err := receiptFromRequest(r)
 	if err != nil {
 		return appErrorf(err, "%v", err)
 	}
-	return resultTmpl.Execute(w,r,receipt)
+	return editTmpl.Execute(w,r,receipt)
 }
 
 func receiptFromRequest(r *http.Request) (*receiptscanner.Receipt, error) {
@@ -124,7 +125,7 @@ func imageProcessingHandler(w http.ResponseWriter, r *http.Request) *appError{
 	if err != nil {
 		return appErrorf(err, "could not add reciept to database: %v", err)
 	}
-	http.Redirect(w, r, fmt.Sprintf("/result/%d", id), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/edit/%d", id), http.StatusFound)
 	return nil	
 }
 
@@ -154,7 +155,7 @@ func receiptFromForm(r *http.Request) (*receiptscanner.Receipt, error) {
 	}
 	receipt.Subtotal = subtotal
 	if subtotal != 0 {
-		receipt.Tax = math.Round(((receipt.Total - receipt.Subtotal)*100)/100)
+		receipt.Tax = math.Round((receipt.Total - receipt.Subtotal)*100)/100
 	}
 	return &receipt, nil
 }
