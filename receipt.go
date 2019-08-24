@@ -1,12 +1,23 @@
 package receiptscanner
 
+import (
+	"time"
+)
+
 type Receipt struct {
 	URL string
 	ID int64
 	Business string
+	DisplayDate string
+	Date time.Time
 	Subtotal float64
 	Tax float64
 	Total float64
+}
+
+func(r *Receipt) SetDate(t time.Time) {
+	r.Date = t
+	r.DisplayDate = t.Format("01/02/2006")
 }
 
 // ReceiptDatabase provides thread-safe access to a database of books.
