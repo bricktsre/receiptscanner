@@ -7,6 +7,7 @@ import (
 type Receipt struct {
 	URL string
 	ID int64
+	UserID string
 	Business string
 	DisplayDate string
 	Date time.Time
@@ -33,6 +34,10 @@ type ReceiptDatabase interface {
 
 	// UpdateReceipt updates the entry for a given book.
 	UpdateReceipt(b *Receipt) error
+
+	// ListReceiptsByUser returns a list of receipts, ordered by date, filtered
+	// by the user who created the receipt
+	ListReceiptsByUser(userID string) ([]*Receipt, error)
 
 	// Close closes the database, freeing up any available resources.
 	// TODO(cbro): Close() should return an error.

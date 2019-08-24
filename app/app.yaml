@@ -1,2 +1,5 @@
 runtime: go112
 env: standard
+
+env_variables:
+ OAUTH2_CALLBACK: https://receiptscanner-0.appspot.com/oauth2callback

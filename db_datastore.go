@@ -78,3 +78,26 @@ func (db *datastoreDB) UpdateReceipt(r *Receipt) error {
 	}
 	return nil
 }
+
+// ListReceiptsByUser returns a list of receipts, ordered by title, filtered by
+// the user who created the receipt entry.
+func (db *datastoreDB) ListReceiptsByUser(userID string) ([]*Receipt, error) {
+	ctx := context.Background()
+	
+	receipts := make([]*Receipt, 0)
+	q := datastore.NewQuery("Receipt").
+		Filter("UserID =", userID).
+		Order("Date")
+
+	keys, err := db.client.GetAll(ctx, q, &receipts)
+
+	if err != nil {
+		return nil, fmt.Errorf("datastoredb: could not list receipts: %v", err)
+	}
+
+	for i, k := range keys {
+		receipts[i].ID = k.ID
+	}
+
+	return receipts, nil
+}

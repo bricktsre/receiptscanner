@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+
+	"github.com/bricktsre/receiptscanner"
 )
 
 func parseTemplate(filename string) *appTemplate {
@@ -28,21 +30,21 @@ type appTemplate struct {
 func (tmpl *appTemplate) Execute(w http.ResponseWriter, r *http.Request, data interface{}) *appError {
 	d := struct {
 		Data        interface{}
-		/*AuthEnabled bool
+		AuthEnabled bool
 		Profile     *Profile
 		LoginURL    string
-		LogoutURL   string*/
+		LogoutURL   string
 	}{
 		Data:        data,
-		/*AuthEnabled: bookshelf.OAuthConfig != nil,
+		AuthEnabled: receiptscanner.OAuthConfig != nil,
 		LoginURL:    "/login?redirect=" + r.URL.RequestURI(),
-		LogoutURL:   "/logout?redirect=" + r.URL.RequestURI(),*/
+		LogoutURL:   "/logout?redirect=" + r.URL.RequestURI(),
 	}
 
-	/*if d.AuthEnabled {
+	if d.AuthEnabled {
 		// Ignore any errors.
 		d.Profile = profileFromSession(r)
-	}*/
+	}
 
 	if err := tmpl.t.Execute(w, d); err != nil {
 		return appErrorf(err, "could not write template: %v", err)

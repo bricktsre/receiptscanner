@@ -1,0 +1,30 @@
+<h3>Receipts</h3>
+<a href="/upload" class="btn btn-succes btn-sm">
+ <i class="glyphicon glyphicon-plus"></i>
+ <span>Add receipt</span>
+</a>
+
+{{range .}}
+<div class="media">
+ <div class="media-left">
+  <img id="list-receipt-image" src="{{.URL}}">
+ </div>
+ <div class="media-body">
+  <h4>{{.Business}}</h4>
+  <p>{{.DisplayDate}}</p>
+  <p>{{.Total}}</p>
+  <form action="/delete/{{.ID}}" method="post">
+   <a href="/receipt_edit/{{.ID}}" class="btn btn-primary btn-sm">
+    <i class="glyphicon glyphicon-edit"></i>
+    <span>Edit receipt</span>
+   </a>
+   <button class="btn btn-danger btn-sm">
+    <i class="glyphicon glyphicon-trash">
+    <span>Delete receipt</span>
+   </button>
+  </form>
+ </div>
+</div>
+{{else}}
+<p>No receipts found</p>
+{{end}}

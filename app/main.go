@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"math"
 	"time"
-	"../../receiptscanner"
+	"github.com/bricktsre/receiptscanner"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -29,6 +29,7 @@ import (
 var (
 	uploadTmpl = parseTemplate("upload.html")
 	editTmpl = parseTemplate("receipt_edit.html")
+	listTmpl = parseTemplate("receipt_list.html")
 )
 
 
@@ -49,10 +50,20 @@ func registerHandlers() {
 
 	r.Methods("GET").Path("/upload").Handler(appHandler(uploadHandler))
 	r.Methods("GET").Path("/edit/{id:[0-9]+}").Handler(appHandler(editHandler))
+	r.Methods("GET").Path("/list").Handler(appHandler(listHandler))
 
 	r.Methods("POST").Path("/process_image").Handler(appHandler(imageProcessingHandler))
 	r.Methods("POST").Path("/update_receipt").Handler(appHandler(receiptUpdateHandler))
+	r.Methods("POST").Path("/delete/{id:[0-9]+}").Handler(appHandler(deleteHandler))
 
+	// The following handlers are defined in auth.go and used in the
+	r.Methods("GET").Path("/login").
+		Handler(appHandler(loginHandler))
+	r.Methods("POST").Path("/logout").
+		Handler(appHandler(logoutHandler))
+	r.Methods("GET").Path("/oauth2callback").
+		Handler(appHandler(oauthCallbackHandler))
+	
 	r.Methods("GET").Path("/_ah/health").HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("ok"))
@@ -85,6 +96,32 @@ func receiptFromRequest(r *http.Request) (*receiptscanner.Receipt, error) {
 	return receipt, nil
 }
 
+func listHandler(w http.ResponseWriter, r *http.Request) *appError {
+	user := profileFromSession(r)
+	if user == nil {
+		http.Redirect(w, r, "/login?redirect=/list", http.StatusFound)
+	}
+
+	receipts, err := receiptscanner.DB.ListReceiptsByUser(user.ID)
+	if err != nil {
+		return appErrorf(err, "could not list receipts: %v", err)
+	}
+
+	return listTmpl.Execute(w, r, receipts)
+}
+
+func deleteHandler(w http.ResponseWriter, r *http.Request) *appError {
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	if err != nil {
+		return appErrorf(err, "bad receipt id: %v", err)
+	}
+	if err = receiptscanner.DB.DeleteReceipt(id); err != nil {
+		return appErrorf(err, "could not delete book: %v", err)
+	}
+	http.Redirect(w, r, "/list", http.StatusFound)
+	return nil
+}
+
 func receiptUpdateHandler(w http.ResponseWriter, r *http.Request) *appError {
 	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 	if err != nil {
@@ -96,7 +133,8 @@ func receiptUpdateHandler(w http.ResponseWriter, r *http.Request) *appError {
 	}
 	
 	receipt.Business = r.FormValue("business")
-	
+	receipt.UserID = r.FormValue("userid")
+
 	temp_date, err := time.Parse("01/02/2006", r.FormValue("date"))
 	if err != nil {
 		return appErrorf(err, "could not parse date from form string: %v", err)
@@ -120,7 +158,8 @@ func receiptUpdateHandler(w http.ResponseWriter, r *http.Request) *appError {
 	
 	if err := receiptscanner.DB.UpdateReceipt(receipt); err != nil {
 		return appErrorf(err, "could not update receipt in database: %v",err)
-	}
+	}	
+	http.Redirect(w, r, fmt.Sprint("/list"), http.StatusFound)
 	return nil
 }
 
@@ -171,6 +210,11 @@ func receiptFromForm(r *http.Request) (*receiptscanner.Receipt, error) {
 		return nil, fmt.Errorf("Cloud not get date: %v:", err)
 	}
 	receipt.SetDate(date)
+	
+	user := profileFromSession(r)
+	if user != nil {
+		receipt.UserID = user.ID
+	}
 	return &receipt, nil
 }
 

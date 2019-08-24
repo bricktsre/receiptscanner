@@ -1,0 +1,8 @@
+indexes:
+
+- kind: Receipt
+  properties:
+  - name: UserID
+    direction: asc
+  - name: Date
+    direction: asc
