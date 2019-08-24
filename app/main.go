@@ -11,6 +11,7 @@ import (
 	"path"
 	"strconv"
 	"math"
+	"time"
 	"../../receiptscanner"
 
 	"github.com/gorilla/handlers"
@@ -95,19 +96,26 @@ func receiptUpdateHandler(w http.ResponseWriter, r *http.Request) *appError {
 	}
 	
 	receipt.Business = r.FormValue("business")
-	receipt.Subtotal, err =strconv.ParseFloat(r.FormValue("subtotal"),64)
+	
+	temp_date, err := time.Parse("01/02/2006", r.FormValue("date"))
 	if err != nil {
-		return appErrorf(err, "could not parse float from form stringg: %v", err)
+		return appErrorf(err, "could not parse date from form string: %v", err)
+	}
+	receipt.SetDate(temp_date)
+
+	receipt.Subtotal, err = strconv.ParseFloat(r.FormValue("subtotal"),64)
+	if err != nil {
+		return appErrorf(err, "could not parse float from form string: %v", err)
 	}
 	
 	receipt.Tax, err = strconv.ParseFloat(r.FormValue("tax"),64)
 	if err != nil {
-		return appErrorf(err, "could not parse float from form stringg: %v", err)
+		return appErrorf(err, "could not parse float from form string: %v", err)
 	}
 	
 	receipt.Total, err = strconv.ParseFloat(r.FormValue("total"),64)
 	if err != nil {
-		return appErrorf(err, "could not parse float from form stringg: %v", err)
+		return appErrorf(err, "could not parse float from form string: %v", err)
 	}
 	
 	if err := receiptscanner.DB.UpdateReceipt(receipt); err != nil {
@@ -154,9 +162,15 @@ func receiptFromForm(r *http.Request) (*receiptscanner.Receipt, error) {
 		return nil, fmt.Errorf("Could not get subtotal: %v", err)
 	}
 	receipt.Subtotal = subtotal
-	if subtotal != 0 {
+	if (subtotal != 0 && total != 0){
 		receipt.Tax = math.Round((receipt.Total - receipt.Subtotal)*100)/100
 	}
+	
+	date, err := txt_annotation.GetDate()
+	if err != nil {
+		return nil, fmt.Errorf("Cloud not get date: %v:", err)
+	}
+	receipt.SetDate(date)
 	return &receipt, nil
 }
 
