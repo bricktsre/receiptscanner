@@ -83,6 +83,9 @@ func (db *datastoreDB) UpdateReceipt(r *Receipt) error {
 // the user who created the receipt entry.
 func (db *datastoreDB) ListReceiptsByUser(userID string) ([]*Receipt, error) {
 	ctx := context.Background()
+	if userID == "" {
+		return nil, nil
+	}	
 	
 	receipts := make([]*Receipt, 0)
 	q := datastore.NewQuery("Receipt").

@@ -12,15 +12,12 @@ import (
 	"strconv"
 	"math"
 	"time"
+		
 	"github.com/bricktsre/receiptscanner"
-
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
 	"cloud.google.com/go/storage"
-	//"google.golang.org/appengine"
-	//"google.golang.org/appengine/datastore"
-	//"google.golang.org/appengine/log"
 	vision "cloud.google.com/go/vision/apiv1"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 	uuid "github.com/gofrs/uuid"
@@ -98,15 +95,14 @@ func receiptFromRequest(r *http.Request) (*receiptscanner.Receipt, error) {
 
 func listHandler(w http.ResponseWriter, r *http.Request) *appError {
 	user := profileFromSession(r)
-	if user == nil {
+	if user == nil{
 		http.Redirect(w, r, "/login?redirect=/list", http.StatusFound)
+		return nil
 	}
-
 	receipts, err := receiptscanner.DB.ListReceiptsByUser(user.ID)
 	if err != nil {
 		return appErrorf(err, "could not list receipts: %v", err)
 	}
-
 	return listTmpl.Execute(w, r, receipts)
 }
 
