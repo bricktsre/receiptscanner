@@ -39,6 +39,10 @@ type ReceiptDatabase interface {
 	// by the user who created the receipt
 	ListReceiptsByUser(userID string) ([]*Receipt, error)
 
+	// ListReceiptsByMonth returns a list of receipts, ordered by date,
+	// filtered by the month passed in 
+	ListReceiptsByMonth(startdate time.Time) ([]*Receipt, error)
+
 	// Close closes the database, freeing up any available resources.
 	// TODO(cbro): Close() should return an error.
 	Close()

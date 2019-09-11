@@ -47,8 +47,9 @@ func registerHandlers() {
 
 	r.Methods("GET").Path("/upload").Handler(appHandler(uploadHandler))
 	r.Methods("GET").Path("/edit/{id:[0-9]+}").Handler(appHandler(editHandler))
-	r.Methods("GET").Path("/list").Handler(appHandler(listHandler))
-
+	r.Methods("GET").Path("/list").Handler(appHandler(listAllReceiptsHandler))
+	r.Methods("GET").Path("/list/month").Handler(appHandler(listMonthReceiptsHandler))
+	
 	r.Methods("POST").Path("/process_image").Handler(appHandler(imageProcessingHandler))
 	r.Methods("POST").Path("/update_receipt").Handler(appHandler(receiptUpdateHandler))
 	r.Methods("POST").Path("/delete/{id:[0-9]+}").Handler(appHandler(deleteHandler))
@@ -93,7 +94,7 @@ func receiptFromRequest(r *http.Request) (*receiptscanner.Receipt, error) {
 	return receipt, nil
 }
 
-func listHandler(w http.ResponseWriter, r *http.Request) *appError {
+func listAllReceiptsHandler(w http.ResponseWriter, r *http.Request) *appError {
 	user := profileFromSession(r)
 	if user == nil{
 		http.Redirect(w, r, "/login?redirect=/list", http.StatusFound)

@@ -3,7 +3,8 @@ package receiptscanner
 import (
 	"context"
 	"fmt"
-	
+	"time"
+
 	"cloud.google.com/go/datastore"
 )
 
@@ -90,6 +91,34 @@ func (db *datastoreDB) ListReceiptsByUser(userID string) ([]*Receipt, error) {
 	receipts := make([]*Receipt, 0)
 	q := datastore.NewQuery("Receipt").
 		Filter("UserID =", userID).
+		Order("Date")
+
+	keys, err := db.client.GetAll(ctx, q, &receipts)
+
+	if err != nil {
+		return nil, fmt.Errorf("datastoredb: could not list receipts: %v", err)
+	}
+
+	for i, k := range keys {
+		receipts[i].ID = k.ID
+	}
+
+	return receipts, nil
+}
+
+// ListReceiptsByMonth returns a list of reciepts from a specific month. 
+// The startdate argument is the begining of the month to pull from
+func (db *datastoreDB) ListReceiptsByMonth(startdate time.T) ([]*Receipt, error) {
+	ctx := context.Background()
+	if startdate == nil {
+		return nil, nil
+	}	
+	
+	enddate := startdate.AddDate(0,1,0)
+	receipts := make([]*Receipt, 0)
+	q := datastore.NewQuery("Receipt").
+		Filter("Date >=", startdate).
+		Filter("Date <", endate).
 		Order("Date")
 
 	keys, err := db.client.GetAll(ctx, q, &receipts)
